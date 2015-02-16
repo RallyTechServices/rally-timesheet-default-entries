@@ -11,9 +11,18 @@ Ext.define('CustomApp', {
         {xtype:'tsinfolink'}
     ],
     launch: function() {
-        console.log(this.getContext().getProject());
         this.down('#message_box').update(this.getContext().getProject());
-        this._addButton(this.down('#selector_box'));
+        this._getSavedDefaults().then({
+            scope: this,
+            success: function(default_entries) {
+                this.default_entries = default_entries;
+                this._addButton(this.down('#selector_box'));
+                this._updateGrid(default_entries);
+            },
+            failure: function(msg) {
+                alert(msg);
+            }
+        });
     },
     _addButton: function(container){
         container.add({
@@ -27,6 +36,9 @@ Ext.define('CustomApp', {
                         artifactTypes: ['userstory'],
                         autoShow: true,
                         multiple: true,
+                        storeConfig: {
+                            context: { project: null }
+                        },
                         title: 'Choose User Stories',
                         listeners: {
                             artifactchosen: function(chooser, selected_records){
@@ -44,13 +56,31 @@ Ext.define('CustomApp', {
         Ext.Array.each(records,function(record){
             new_refs.push(record.get('_ref'))
         });
-        console.log('new items:', new_refs);
+
         this.default_entries = Ext.Array.merge(this.default_entries,new_refs);
-        console.log('default items:', this.default_entries);
+
+        this._saveConfiguration(this.default_entries);
         this._updateGrid(this.default_entries);
+    },
+    _saveConfiguration: function(references) {
+        var project_ref = this.getContext().getProject()._ref;
+
+        Rally.data.PreferenceManager.update({
+            project: project_ref,
+            settings: {
+                'rally.technicalservices.defaulttimeentries': Ext.JSON.encode(references)
+            },
+            success: function(updatedRecords, notUpdatedRecords) {
+                console.log(updatedRecords, notUpdatedRecords);
+            }
+        });
     },
     _updateGrid: function(references) {
         var promises = [];
+        var container = this.down('#display_box');
+        
+        container.removeAll();
+        
         Ext.Array.each(references, function(reference){
             promises.push(this._getRecordFromReference(reference));
         },this);
@@ -77,8 +107,7 @@ Ext.define('CustomApp', {
                     ]
                 });
                 
-                this.down('#display_box').add(grid);
-                
+                container.add(grid);
             },
             failure: function(msg){
                 alert("Cannot load grid: ", msg);
@@ -99,6 +128,9 @@ Ext.define('CustomApp', {
                 fetch: ['Name','FormattedID','ScheduleState','Project'],
                 filters: [{ property:'ObjectID', value: oid}],
                 autoLoad: true,
+                context: {
+                    project: null
+                },
                 listeners: {
                     load: function(store, records, successful) {
                         if (successful){
@@ -110,6 +142,28 @@ Ext.define('CustomApp', {
                 }
             });
         }
+        return deferred.promise;
+    },
+    _getSavedDefaults: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        var project_ref = this.getContext().getProject()._ref;
+
+        Rally.data.PreferenceManager.load({
+            project: project_ref,
+//            settings: {
+//                'rally.technicalservices.defaulttimeentries': Ext.JSON.encode(references)
+//            },
+            success: function(prefs) {
+                console.log("returned:",prefs);
+                var records = [];
+                if (prefs && prefs['rally.technicalservices.defaulttimeentries'] ) {
+                    if( typeof prefs['rally.technicalservices.defaulttimeentries'] == 'string') {
+                        records = Ext.JSON.decode(prefs['rally.technicalservices.defaulttimeentries']);
+                    }
+                }
+                deferred.resolve(records);
+            }
+        });
         return deferred.promise;
     }
 });
