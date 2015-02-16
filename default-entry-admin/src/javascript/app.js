@@ -98,7 +98,7 @@ Ext.define('CustomApp', {
                     columnCfgs: [
                         {dataIndex:'FormattedID',text:'id'},
                         {dataIndex:'Name',text:'Name', flex: 1},
-                        {dataIndex:'Project',text:'Team', renderer: function(value){ 
+                        {dataIndex:'Project',text:'Project', renderer: function(value){ 
                             if (value && value._refObjectName) {
                                 return value._refObjectName
                             }
