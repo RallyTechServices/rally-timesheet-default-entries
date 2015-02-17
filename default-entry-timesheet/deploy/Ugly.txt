@@ -3,14 +3,14 @@
 <head>
     <title>Timesheet Populator</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Mon Feb 16 2015 16:45:35 GMT-0800 (PST) -->
+    <!--  Build Date: Mon Feb 16 2015 17:58:38 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Feb 16 2015 16:45:35 GMT-0800 (PST)";
+        var APP_BUILD_DATE = "Mon Feb 16 2015 17:58:38 GMT-0800 (PST)";
         var CHECKSUM = [%= checksum %];
     </script>
     
-    <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
+    <script type="text/javascript" src="/apps/2.0rc2/sdk.js"></script>
 
     <script type="text/javascript">
         Rally.onReady(function() {

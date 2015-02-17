@@ -2,6 +2,6 @@
     "name": "Timesheet Populator",
     "className": "CustomApp",
     "server": "https://demo-west.rallydev.com",
-    "sdk": "2.0rc3",
+    "sdk": "2.0rc2",
     "apiKey": "_PUT_APIKEY_HERE_"
 }

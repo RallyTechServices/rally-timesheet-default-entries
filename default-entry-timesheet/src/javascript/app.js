@@ -25,7 +25,6 @@ Ext.define('CustomApp', {
             scope: me,
             success: function(defaults_and_time_entries) {
                 console.log(defaults_and_time_entries);
-                this.setLoading(false);
                 
                 var default_entries = defaults_and_time_entries[0];
                 var time_entries = defaults_and_time_entries[1];
@@ -44,7 +43,6 @@ Ext.define('CustomApp', {
                     });
                 } 
                 
-                
                 this._updateGrid(default_entries,time_entries);
             },
             failure: function(msg) {
@@ -57,12 +55,15 @@ Ext.define('CustomApp', {
         var container = this.down('#display_box');
         
         container.removeAll();
-        
-        Ext.Array.each(default_entries, function(reference){
-            promises.push(this._getRecordFromReference(reference,false));
-        },this);
+
         Ext.Array.each(time_entries, function(reference){
             promises.push(this._getRecordFromReference(reference,true));
+        },this);
+        
+        Ext.Array.each(default_entries, function(reference){
+            if ( Ext.Array.indexOf(time_entries, reference) == -1 ) {
+                promises.push(this._getRecordFromReference(reference,false));
+            }
         },this);
         
         Deft.Promise.all(promises).then({
@@ -77,7 +78,16 @@ Ext.define('CustomApp', {
                 var grid = Ext.create('Rally.ui.grid.Grid', {
                     store: store,
                     showRowActionsColumn: false,
+                    showPagingToolbar: false,
                     columnCfgs: [
+                        {dataIndex:'_existing',text:'Saved', renderer: function(value) {
+                            
+                            var iconName = 'icon-ok';
+                            if ( !value ) {
+                                iconName = 'icon-upload';
+                            }
+                            return '<span class="' + iconName + '" style="fontSize:20px;,display:block;" > </span>';
+                        }},
                         {dataIndex:'FormattedID',text:'id'},
                         {dataIndex:'Name',text:'Name', flex: 1},
                         {dataIndex:'Project',text:'Project', renderer: function(value){ 
@@ -85,9 +95,15 @@ Ext.define('CustomApp', {
                                 return value._refObjectName
                             }
                             return value;
-                        }},
-                        {dataIndex:'_existing',text:'Existing Entry'}
-                    ]
+                        }}
+                    ],
+                    listeners: {
+                        scope: this,
+                        render: function() {
+                            this.setLoading(false);
+                            this._createTimesheetEntries(rows);
+                        }
+                    }
                 });
                 
                 container.add(grid);
@@ -96,6 +112,43 @@ Ext.define('CustomApp', {
                 alert("Cannot load grid: ", msg);
             }
         });
+    },
+    _createTimesheetEntries: function(records) {
+        Rally.data.ModelFactory.getModel({
+            type: 'TimeEntryItem',
+            scope: this,
+            success: function(model) {
+                Ext.Array.each(records, function(record) {
+                    if ( ! record.get('_existing') ) {
+                        this._createTimesheetEntry(model,record);
+                    }
+                },this);
+            }
+        });
+    },
+    _createTimesheetEntry: function(model,record) {
+        var deferred = Ext.create('Deft.Deferred');
+                
+        var start_of_week = this._getStartOfWeek(new Date());
+
+        var tie_config = {
+            WeekStartDate: start_of_week,
+            User: { _ref: this.getContext().getUser()._ref },
+            WorkProduct: { _ref: record.get("_ref") },
+            Project: { _ref: record.get("Project")._ref }
+        };
+        
+        var tie = Ext.create(model,tie_config);
+        this.logger.log("Saving TimeSheet Entry", tie_config);
+        
+        tie.save({
+            callback: function(result,operation) {
+                record.set('_existing',true);
+                deferred.resolve(operation);
+            }
+        });
+        
+        return deferred.promise;
     },
     _getRecordFromReference: function(reference,existing_entry){
         var deferred = Ext.create('Deft.Deferred');
@@ -108,7 +161,7 @@ Ext.define('CustomApp', {
             
             Ext.create('Rally.data.wsapi.Store', {
                 model: model,
-                fetch: ['Name','FormattedID','ScheduleState','Project'],
+                fetch: ['Name','FormattedID','ScheduleState','Project','Workspace'],
                 filters: [{ property:'ObjectID', value: oid}],
                 autoLoad: true,
                 context: {
