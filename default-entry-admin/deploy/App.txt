@@ -3,11 +3,11 @@
 <head>
     <title>Default Timesheet Entry Admin Tool</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sun Feb 15 2015 19:21:59 GMT-0800 (PST) -->
+    <!--  Build Date: Mon Feb 16 2015 16:45:43 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Feb 15 2015 19:21:59 GMT-0800 (PST)";
-        var CHECKSUM = 2478254756;
+        var APP_BUILD_DATE = "Mon Feb 16 2015 16:45:43 GMT-0800 (PST)";
+        var CHECKSUM = 2527755473;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
@@ -157,6 +157,7 @@ Ext.define('CustomApp', {
             success: function(default_entries) {
                 this.default_entries = default_entries;
                 this._addButton(this.down('#selector_box'));
+                this.setLoading(false);
                 this._updateGrid(default_entries);
             },
             failure: function(msg) {
@@ -235,10 +236,11 @@ Ext.define('CustomApp', {
                 
                 var grid = Ext.create('Rally.ui.grid.Grid', {
                     store: store,
+                    showRowActionsColumn: false,
                     columnCfgs: [
                         {dataIndex:'FormattedID',text:'id'},
                         {dataIndex:'Name',text:'Name', flex: 1},
-                        {dataIndex:'Project',text:'Team', renderer: function(value){ 
+                        {dataIndex:'Project',text:'Project', renderer: function(value){ 
                             if (value && value._refObjectName) {
                                 return value._refObjectName
                             }
@@ -286,6 +288,8 @@ Ext.define('CustomApp', {
     },
     _getSavedDefaults: function() {
         var deferred = Ext.create('Deft.Deferred');
+        this.setLoading(true);
+        
         var project_ref = this.getContext().getProject()._ref;
 
         Rally.data.PreferenceManager.load({

@@ -14,7 +14,8 @@ Ext.define('CustomApp', {
     launch: function() {
         this.down('#title_box').update(this.getContext().getUser());
         var me = this;
-        
+        this.setLoading(true);
+
         var start_of_week = this._getStartOfWeek(new Date());
         
         Deft.Chain.pipeline([
@@ -24,6 +25,7 @@ Ext.define('CustomApp', {
             scope: me,
             success: function(defaults_and_time_entries) {
                 console.log(defaults_and_time_entries);
+                this.setLoading(false);
                 
                 var default_entries = defaults_and_time_entries[0];
                 var time_entries = defaults_and_time_entries[1];
@@ -74,6 +76,7 @@ Ext.define('CustomApp', {
                 
                 var grid = Ext.create('Rally.ui.grid.Grid', {
                     store: store,
+                    showRowActionsColumn: false,
                     columnCfgs: [
                         {dataIndex:'FormattedID',text:'id'},
                         {dataIndex:'Name',text:'Name', flex: 1},

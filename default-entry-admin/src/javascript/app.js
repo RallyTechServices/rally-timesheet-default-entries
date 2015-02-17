@@ -17,6 +17,7 @@ Ext.define('CustomApp', {
             success: function(default_entries) {
                 this.default_entries = default_entries;
                 this._addButton(this.down('#selector_box'));
+                this.setLoading(false);
                 this._updateGrid(default_entries);
             },
             failure: function(msg) {
@@ -95,6 +96,7 @@ Ext.define('CustomApp', {
                 
                 var grid = Ext.create('Rally.ui.grid.Grid', {
                     store: store,
+                    showRowActionsColumn: false,
                     columnCfgs: [
                         {dataIndex:'FormattedID',text:'id'},
                         {dataIndex:'Name',text:'Name', flex: 1},
@@ -146,6 +148,8 @@ Ext.define('CustomApp', {
     },
     _getSavedDefaults: function() {
         var deferred = Ext.create('Deft.Deferred');
+        this.setLoading(true);
+        
         var project_ref = this.getContext().getProject()._ref;
 
         Rally.data.PreferenceManager.load({
