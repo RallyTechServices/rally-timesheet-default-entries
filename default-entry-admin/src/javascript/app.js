@@ -63,16 +63,32 @@ Ext.define('CustomApp', {
         this._saveConfiguration(this.default_entries);
         this._updateGrid(this.default_entries);
     },
+    _removeRecordFromDefaultList: function(record) {
+        var clean_refs = [];
+        var ref = record.get('_ref');
+        
+        Ext.Array.each(this.default_entries,function(entry){
+            if (entry !== ref) {
+                clean_refs.push(entry);
+            }
+        });
+
+        this.default_entries = clean_refs;
+        
+        this._saveConfiguration(this.default_entries);
+        this._updateGrid(this.default_entries);
+    },
     _saveConfiguration: function(references) {
         var project_ref = this.getContext().getProject()._ref;
-
+        var me = this;
+        
         Rally.data.PreferenceManager.update({
             project: project_ref,
             settings: {
                 'rally.technicalservices.defaulttimeentries': Ext.JSON.encode(references)
             },
             success: function(updatedRecords, notUpdatedRecords) {
-                console.log(updatedRecords, notUpdatedRecords);
+                me.logger.log(updatedRecords, notUpdatedRecords);
             }
         });
     },
@@ -85,6 +101,7 @@ Ext.define('CustomApp', {
         Ext.Array.each(references, function(reference){
             promises.push(this._getRecordFromReference(reference));
         },this);
+        
         Deft.Promise.all(promises).then({
             scope: this,
             success: function(records){
@@ -94,10 +111,27 @@ Ext.define('CustomApp', {
                     data: rows
                 });
                 
+                var me = this;
+                
                 var grid = Ext.create('Rally.ui.grid.Grid', {
                     store: store,
                     showRowActionsColumn: false,
                     columnCfgs: [
+                        {
+                            xtype: 'rallyrowactioncolumn',
+                            rowActionsFn: function (record) {
+                                return [
+                                    {
+                                        xtype: 'tsremoveitemenuitem',
+                                        record: record,
+                                        handler: function(){
+                                            me._removeRecordFromDefaultList(record);
+                                        }
+                                        
+                                    }
+                                ];
+                            }
+                        },
                         {dataIndex:'FormattedID',text:'id'},
                         {dataIndex:'Name',text:'Name', flex: 1},
                         {dataIndex:'Project',text:'Project', renderer: function(value){ 
@@ -158,7 +192,6 @@ Ext.define('CustomApp', {
 //                'rally.technicalservices.defaulttimeentries': Ext.JSON.encode(references)
 //            },
             success: function(prefs) {
-                console.log("returned:",prefs);
                 var records = [];
                 if (prefs && prefs['rally.technicalservices.defaulttimeentries'] ) {
                     if( typeof prefs['rally.technicalservices.defaulttimeentries'] == 'string') {
