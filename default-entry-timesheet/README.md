@@ -1,5 +1,10 @@
 #Timesheet Populator
 
+The timesheet populator will read the default stories that have been chosen by an administrator using the ADMIN app.  The default stories are loaded in a preference and associated with a Rally team (project).  Default entries and existing timesheet entries (a row on the timesheet) are displayed.  Default entries that haven't gotten a row yet are added to the timesheet.  The checkbox in the saved column indicates a successful save.  
+
+There is a gear for the user to remove the item from their current timesheet.  This will remove the entry even if it has data!  Also, it would get put back if the user loads the page again.
+
+
 ## Development Notes
 
 ### First Load

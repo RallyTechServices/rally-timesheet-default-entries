@@ -1,6 +1,10 @@
 #Default Timesheet Entry Admin Tool
 
+Allows an administrator to choose stories that are default for entering time forusers in a particular Rally project/team.  The default list can be modified.  The items will not show up on a timesheet until the user launches the user app.
+
 ## Development Notes
+
+The entries are saved as a preference associated with the project.
 
 ### First Load
 
