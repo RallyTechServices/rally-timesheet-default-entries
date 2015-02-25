@@ -24,7 +24,7 @@ Ext.define('CustomApp', {
         ]).then({
             scope: me,
             success: function(defaults_and_time_entries) {
-                console.log(defaults_and_time_entries);
+                this.logger.log("Defaults and TIES", defaults_and_time_entries);
                 
                 var default_entries = defaults_and_time_entries[0];
                 var time_entries = defaults_and_time_entries[1];
@@ -70,10 +70,11 @@ Ext.define('CustomApp', {
             scope: this,
             success: function(records){
                 var rows = Ext.Array.flatten(records);
-                this.logger.log(rows);
                 var store = Ext.create('Rally.data.custom.Store', {
                     data: rows
                 });
+                
+                var me = this;
                 
                 var grid = Ext.create('Rally.ui.grid.Grid', {
                     store: store,
@@ -88,6 +89,22 @@ Ext.define('CustomApp', {
                             }
                             return '<span class="' + iconName + '" style="fontSize:20px;,display:block;" > </span>';
                         }},
+                        {
+                            xtype: 'rallyrowactioncolumn',
+                            rowActionsFn: function (record) {
+                                return [
+                                    {
+                                        xtype: 'tsremoveitemenuitem',
+                                        text: 'Remove from this week',
+                                        record: record,
+                                        handler: function(){
+                                            me._removeTimeSheetEntry(record);
+                                        }
+                                        
+                                    }
+                                ];
+                            }
+                        },
                         {dataIndex:'FormattedID',text:'id'},
                         {dataIndex:'Name',text:'Name', flex: 1},
                         {dataIndex:'Project',text:'Project', renderer: function(value){ 
@@ -144,6 +161,8 @@ Ext.define('CustomApp', {
         tie.save({
             callback: function(result,operation) {
                 record.set('_existing',true);
+                record.set('_tie',result);
+                
                 deferred.resolve(operation);
             }
         });
@@ -183,6 +202,38 @@ Ext.define('CustomApp', {
         }
         return deferred.promise;
     },
+    _removeTimeSheetEntry:function(record){
+        var deferred = Ext.create('Deft.Deferred');
+        this.logger.log("Remove record", record);
+        this.logger.log("this.ties",this.ties);
+        
+        var tie = record.get('_tie');  // new items
+
+        if ( !tie ) {
+            // search in old items
+            Ext.Array.each(this.ties, function(candidate_tie) {
+                var workproduct = candidate_tie.get('WorkProduct');
+                if ( workproduct ) {
+                    if (workproduct._ref == record.get('_ref')) {
+                        tie = candidate_tie;
+                    }
+                }
+            },this);
+        }
+        
+        this.logger.log("using tie", tie);
+        
+        tie.destroy({
+            callback: function(result, operation) {
+                if(operation.wasSuccessful()) {
+                    record.set('_existing',false);
+                    deferred.resolve(operation);
+                }
+            }
+        });
+//        
+        return deferred.promise;
+    },
     _getSavedDefaults: function(context) {
         var deferred = Ext.create('Deft.Deferred');
         
@@ -217,8 +268,9 @@ Ext.define('CustomApp', {
             listeners: {
                 scope: this,
                 load: function(store,ties){
-                    console.log(ties);
+                    this.logger.log("Time Item Entries", ties);
                     var refs = [];
+                    this.ties = ties;
                     Ext.Array.each(ties, function(tie){
                         var workproduct = tie.get('WorkProduct');
                         if ( workproduct && workproduct._ref ) {
